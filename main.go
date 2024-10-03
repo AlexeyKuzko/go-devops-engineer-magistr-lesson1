@@ -111,7 +111,7 @@ func main() {
 		netUsage := float64(usedNet) / float64(totalNet)
 		if netUsage > maxNetUsage {
 			freeNetMb := float64(totalNet-usedNet) * 8 / (1024 * 1024)
-			fmt.Printf("Network bandwidth usage high: %.2f Mbit/s available\n", freeNetMb)
+			fmt.Printf("Network bandwidth usage high: %.0f Mbit/s available\n", freeNetMb)
 		}
 
 		time.Sleep(interval)
