@@ -94,12 +94,12 @@ func main() {
 		}
 
 		if loadAvg > maxLoadAvg {
-			fmt.Printf("Load Average is too high: %.2f\n", loadAvg)
+			fmt.Printf("Load Average is too high: %d\n", int(loadAvg))
 		}
 
 		memUsage := float64(usedMem) / float64(totalMem)
 		if memUsage > maxMemUsage {
-			fmt.Printf("Memory usage too high: %.2f%%\n", memUsage*100)
+			fmt.Printf("Memory usage too high: %.0f%%\n", memUsage*100)
 		}
 
 		freeDiskSpaceMB := (totalDisk - usedDisk) / (1024 * 1024)
@@ -111,7 +111,7 @@ func main() {
 		netUsage := float64(usedNet) / float64(totalNet)
 		if netUsage > maxNetUsage {
 			freeNetMb := float64(totalNet-usedNet) / (1024 * 1024) * 8 // Convert to Mbit/s
-			fmt.Printf("Network bandwidth usage high: %.2f Mbit/s available\n", freeNetMb)
+			fmt.Printf("Network bandwidth usage high: %.0f Mbit/s available\n", freeNetMb)
 		}
 
 		time.Sleep(interval)
