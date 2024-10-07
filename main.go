@@ -11,7 +11,7 @@ import (
 
 const (
 	url          = "http://srv.msk01.gigacorp.local/_stats"
-	interval     = 10 * time.Second
+	interval     = 5 * time.Second
 	maxLoadAvg   = 30.0
 	maxMemUsage  = 0.8
 	maxDiskUsage = 0.9
@@ -41,7 +41,7 @@ func main() {
 				fmt.Println("Unable to fetch server statistics after multiple attempts.")
 				return
 			}
-			fmt.Printf("error fetching server stats: %v. Retrying...\n", err)
+			fmt.Printf("Error fetching server stats: %v. Retrying...\n", err)
 			time.Sleep(interval)
 			continue
 		}
@@ -132,7 +132,8 @@ func parseServerStats(data []string) (ServerStats, error) {
 func analyzeServerStats(stats ServerStats) {
 	// Проверка нагрузки процессора
 	if stats.LoadAvg > maxLoadAvg {
-		fmt.Printf("Load Average is too high: %.2f\n", stats.LoadAvg)
+		// Округляем значение Load Average до целого числа
+		fmt.Printf("Load Average is too high: %d\n", int(stats.LoadAvg))
 	}
 
 	// Проверка использования памяти
@@ -151,7 +152,8 @@ func analyzeServerStats(stats ServerStats) {
 	// Проверка использования сети
 	netUsage := float64(stats.UsedNet) / float64(stats.TotalNet)
 	if netUsage > maxNetUsage {
-		freeNetMb := float64(stats.TotalNet-stats.UsedNet) * 8 / (1024 * 1024)
+		// Исправляем расчет свободной пропускной способности сети для правильного отображения
+		freeNetMb := float64(stats.TotalNet-stats.UsedNet) / (1000 * 1000)
 		fmt.Printf("Network bandwidth usage high: %.0f Mbit/s available\n", freeNetMb)
 	}
 }
