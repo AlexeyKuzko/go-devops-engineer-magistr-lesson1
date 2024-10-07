@@ -11,7 +11,7 @@ import (
 
 const (
 	url          = "http://srv.msk01.gigacorp.local/_stats"
-	interval     = 30 * time.Second
+	interval     = 10 * time.Second
 	maxLoadAvg   = 30.0
 	maxMemUsage  = 0.8
 	maxDiskUsage = 0.9
@@ -19,101 +19,139 @@ const (
 	maxErrors    = 3
 )
 
+// Структура для хранения статистики сервера
+type ServerStats struct {
+	LoadAvg   float64
+	TotalMem  int64
+	UsedMem   int64
+	TotalDisk int64
+	UsedDisk  int64
+	TotalNet  int64
+	UsedNet   int64
+}
+
 func main() {
 	errorCount := 0
 
 	for {
-		resp, err := http.Get(url)
-		if err != nil || resp.StatusCode != http.StatusOK {
+		stats, err := fetchServerStats(url)
+		if err != nil {
 			errorCount++
 			if errorCount >= maxErrors {
-				fmt.Println("Unable to fetch server statistic.")
+				fmt.Println("Unable to fetch server statistics after multiple attempts.")
 				return
 			}
+			fmt.Printf("Error fetching server stats: %v. Retrying...\n", err)
 			time.Sleep(interval)
 			continue
 		}
+
+		// Сброс счётчика ошибок при успешном запросе
 		errorCount = 0
 
-		body, err := io.ReadAll(resp.Body)
-		resp.Body.Close()
-		if err != nil {
-			fmt.Println("Error reading response body:", err)
-			time.Sleep(interval)
-			continue
-		}
-
-		data := strings.Split(string(body), ",")
-		if len(data) != 7 {
-			fmt.Println("Invalid data format.")
-			time.Sleep(interval)
-			continue
-		}
-
-		loadAvg, err := strconv.ParseFloat(data[0], 64)
-		if err != nil {
-			fmt.Println("Error parsing load average:", err)
-			time.Sleep(interval)
-			continue
-		}
-		totalMem, err := strconv.ParseInt(data[1], 10, 64)
-		if err != nil {
-			fmt.Println("Error parsing total memory:", err)
-			time.Sleep(interval)
-			continue
-		}
-		usedMem, err := strconv.ParseInt(data[2], 10, 64)
-		if err != nil {
-			fmt.Println("Error parsing used memory:", err)
-			time.Sleep(interval)
-			continue
-		}
-		totalDisk, err := strconv.ParseInt(data[3], 10, 64)
-		if err != nil {
-			fmt.Println("Error parsing total disk:", err)
-			time.Sleep(interval)
-			continue
-		}
-		usedDisk, err := strconv.ParseInt(data[4], 10, 64)
-		if err != nil {
-			fmt.Println("Error parsing used disk:", err)
-			time.Sleep(interval)
-			continue
-		}
-		totalNet, err := strconv.ParseInt(data[5], 10, 64)
-		if err != nil {
-			fmt.Println("Error parsing total network bandwidth:", err)
-			time.Sleep(interval)
-			continue
-		}
-		usedNet, err := strconv.ParseInt(data[6], 10, 64)
-		if err != nil {
-			fmt.Println("Error parsing used network bandwidth:", err)
-			time.Sleep(interval)
-			continue
-		}
-
-		if loadAvg > maxLoadAvg {
-			fmt.Printf("Load Average is too high: %d\n", int(loadAvg))
-		}
-
-		memUsage := float64(usedMem) / float64(totalMem)
-		if memUsage > maxMemUsage {
-			fmt.Printf("Memory usage too high: %.0f%%\n", memUsage*100)
-		}
-
-		freeDiskSpaceMB := (totalDisk - usedDisk) / (1024 * 1024)
-		diskUsage := float64(usedDisk) / float64(totalDisk)
-		if diskUsage > maxDiskUsage {
-			fmt.Printf("Free disk space is too low: %d Mb left\n", freeDiskSpaceMB)
-		}
-
-		netUsage := float64(usedNet) / float64(totalNet)
-		if netUsage > maxNetUsage {
-			freeNetMb := float64(totalNet-usedNet) * 8 / (1024 * 1024)
-			fmt.Printf("Network bandwidth usage high: %.0f Mbit/s available\n", freeNetMb)
-		}
+		// Анализ статистики сервера
+		analyzeServerStats(stats)
 
 		time.Sleep(interval)
+	}
+}
+
+// Функция для получения статистики с сервера
+func fetchServerStats(url string) (ServerStats, error) {
+	resp, err := http.Get(url)
+	if err != nil || resp.StatusCode != http.StatusOK {
+		if err == nil {
+			err = fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+		}
+		return ServerStats{}, err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return ServerStats{}, fmt.Errorf("error reading response body: %w", err)
+	}
+
+	data := strings.Split(string(body), ",")
+	if len(data) != 7 {
+		return ServerStats{}, fmt.Errorf("invalid data format")
+	}
+
+	// Парсим данные из строки в структуру
+	stats, err := parseServerStats(data)
+	if err != nil {
+		return ServerStats{}, fmt.Errorf("error parsing server stats: %w", err)
+	}
+
+	return stats, nil
+}
+
+// Функция для парсинга данных в структуру ServerStats
+func parseServerStats(data []string) (ServerStats, error) {
+	loadAvg, err := strconv.ParseFloat(data[0], 64)
+	if err != nil {
+		return ServerStats{}, fmt.Errorf("Error parsing load average: %w", err)
+	}
+	totalMem, err := strconv.ParseInt(data[1], 10, 64)
+	if err != nil {
+		return ServerStats{}, fmt.Errorf("Error parsing total memory: %w", err)
+	}
+	usedMem, err := strconv.ParseInt(data[2], 10, 64)
+	if err != nil {
+		return ServerStats{}, fmt.Errorf("Error parsing used memory: %w", err)
+	}
+	totalDisk, err := strconv.ParseInt(data[3], 10, 64)
+	if err != nil {
+		return ServerStats{}, fmt.Errorf("Error parsing total disk: %w", err)
+	}
+	usedDisk, err := strconv.ParseInt(data[4], 10, 64)
+	if err != nil {
+		return ServerStats{}, fmt.Errorf("Error parsing used disk: %w", err)
+	}
+	totalNet, err := strconv.ParseInt(data[5], 10, 64)
+	if err != nil {
+		return ServerStats{}, fmt.Errorf("Error parsing total network bandwidth: %w", err)
+	}
+	usedNet, err := strconv.ParseInt(data[6], 10, 64)
+	if err != nil {
+		return ServerStats{}, fmt.Errorf("Error parsing used network bandwidth: %w", err)
+	}
+
+	return ServerStats{
+		LoadAvg:   loadAvg,
+		TotalMem:  totalMem,
+		UsedMem:   usedMem,
+		TotalDisk: totalDisk,
+		UsedDisk:  usedDisk,
+		TotalNet:  totalNet,
+		UsedNet:   usedNet,
+	}, nil
+}
+
+// Функция для анализа и вывода статистики
+func analyzeServerStats(stats ServerStats) {
+	// Проверка нагрузки процессора
+	if stats.LoadAvg > maxLoadAvg {
+		fmt.Printf("Load Average is too high: %.2f\n", stats.LoadAvg)
+	}
+
+	// Проверка использования памяти
+	memUsage := float64(stats.UsedMem) / float64(stats.TotalMem)
+	if memUsage > maxMemUsage {
+		fmt.Printf("Memory usage too high: %.0f%%\n", memUsage*100)
+	}
+
+	// Проверка использования дискового пространства
+	freeDiskSpaceMB := (stats.TotalDisk - stats.UsedDisk) / (1024 * 1024)
+	diskUsage := float64(stats.UsedDisk) / float64(stats.TotalDisk)
+	if diskUsage > maxDiskUsage {
+		fmt.Printf("Free disk space is too low: %d Mb left\n", freeDiskSpaceMB)
+	}
+
+	// Проверка использования сети
+	netUsage := float64(stats.UsedNet) / float64(stats.TotalNet)
+	if netUsage > maxNetUsage {
+		freeNetMb := float64(stats.TotalNet-stats.UsedNet) * 8 / (1024 * 1024)
+		fmt.Printf("Network bandwidth usage high: %.0f Mbit/s available\n", freeNetMb)
 	}
 }
