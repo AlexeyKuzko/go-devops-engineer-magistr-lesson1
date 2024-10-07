@@ -138,8 +138,9 @@ func analyzeServerStats(stats ServerStats) {
 
 	// Проверка использования памяти
 	memUsage := float64(stats.UsedMem) / float64(stats.TotalMem)
-	if memUsage > maxMemUsage {
-		fmt.Printf("Memory usage too high: %.0f%%\n", memUsage*100)
+	memUsagePercent := int(memUsage * 100)
+	if memUsagePercent > int(maxMemUsage*100) {
+		fmt.Printf("Memory usage too high: %d%%\n", memUsagePercent)
 	}
 
 	// Проверка использования дискового пространства
@@ -151,9 +152,10 @@ func analyzeServerStats(stats ServerStats) {
 
 	// Проверка использования сети
 	netUsage := float64(stats.UsedNet) / float64(stats.TotalNet)
-	if netUsage > maxNetUsage {
+	netUsagePercent := int(netUsage * 100)
+	if netUsagePercent > int(maxNetUsage*100) {
 		// Исправляем расчет свободной пропускной способности сети для правильного отображения
 		freeNetMb := float64(stats.TotalNet-stats.UsedNet) / (1000 * 1000)
-		fmt.Printf("Network bandwidth usage high: %.0f Mbit/s available\n", freeNetMb)
+		fmt.Printf("Network bandwidth usage high: %d Mbit/s available\n", int(freeNetMb))
 	}
 }
