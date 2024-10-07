@@ -41,7 +41,7 @@ func main() {
 				fmt.Println("Unable to fetch server statistics after multiple attempts.")
 				return
 			}
-			fmt.Printf("Error fetching server stats: %v. Retrying...\n", err)
+			fmt.Printf("error fetching server stats: %v. Retrying...\n", err)
 			time.Sleep(interval)
 			continue
 		}
@@ -90,31 +90,31 @@ func fetchServerStats(url string) (ServerStats, error) {
 func parseServerStats(data []string) (ServerStats, error) {
 	loadAvg, err := strconv.ParseFloat(data[0], 64)
 	if err != nil {
-		return ServerStats{}, fmt.Errorf("Error parsing load average: %w", err)
+		return ServerStats{}, fmt.Errorf("error parsing load average: %w", err)
 	}
 	totalMem, err := strconv.ParseInt(data[1], 10, 64)
 	if err != nil {
-		return ServerStats{}, fmt.Errorf("Error parsing total memory: %w", err)
+		return ServerStats{}, fmt.Errorf("error parsing total memory: %w", err)
 	}
 	usedMem, err := strconv.ParseInt(data[2], 10, 64)
 	if err != nil {
-		return ServerStats{}, fmt.Errorf("Error parsing used memory: %w", err)
+		return ServerStats{}, fmt.Errorf("error parsing used memory: %w", err)
 	}
 	totalDisk, err := strconv.ParseInt(data[3], 10, 64)
 	if err != nil {
-		return ServerStats{}, fmt.Errorf("Error parsing total disk: %w", err)
+		return ServerStats{}, fmt.Errorf("error parsing total disk: %w", err)
 	}
 	usedDisk, err := strconv.ParseInt(data[4], 10, 64)
 	if err != nil {
-		return ServerStats{}, fmt.Errorf("Error parsing used disk: %w", err)
+		return ServerStats{}, fmt.Errorf("error parsing used disk: %w", err)
 	}
 	totalNet, err := strconv.ParseInt(data[5], 10, 64)
 	if err != nil {
-		return ServerStats{}, fmt.Errorf("Error parsing total network bandwidth: %w", err)
+		return ServerStats{}, fmt.Errorf("error parsing total network bandwidth: %w", err)
 	}
 	usedNet, err := strconv.ParseInt(data[6], 10, 64)
 	if err != nil {
-		return ServerStats{}, fmt.Errorf("Error parsing used network bandwidth: %w", err)
+		return ServerStats{}, fmt.Errorf("error parsing used network bandwidth: %w", err)
 	}
 
 	return ServerStats{
